@@ -30,7 +30,7 @@ AMainPawn::AMainPawn()
 	MainCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	FloatingPawnMovement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement"));
 
-	//CollisionSphere->SetSimulatePhysics(true);//
+	CollisionSphere->SetSimulatePhysics(true);
 	SetRootComponent(CollisionSphere);
 	SpringArm->SetupAttachment(RootComponent);
 	VisualMeshRoot->SetupAttachment(RootComponent);
@@ -60,6 +60,10 @@ void AMainPawn::BeginPlay()
 	OnActorBeginOverlap.AddDynamic(this, &AMainPawn::OnActorOverlapBegin);
 	OnActorEndOverlap.AddDynamic(this, &AMainPawn::OnActorOverlapEnd);
 	OnActorHit.AddDynamic(this, &AMainPawn::OnHitActor);
+
+	CollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &AMainPawn::OnCollisionSphereBeginOverlap);
+	CollisionSphere->OnComponentEndOverlap.AddDynamic(this, &AMainPawn::OnCollisionSphereEndOverlap);
+	CollisionSphere->OnComponentHit.AddDynamic(this, &AMainPawn::OnCollisionSphereHit);
 
 
 }
@@ -92,7 +96,7 @@ void AMainPawn::OnHitActor(AActor* SelfActor, AActor* OtherActor, FVector Normal
 		if (AStaticMeshActor* Wall = Cast<AStaticMeshActor>(OtherActor)) {
 			UStaticMeshComponent* MeshComp = Wall->GetComponentByClass<UStaticMeshComponent>();
 			if (MeshComp) {
-				MeshComp->AddImpulse(FVector::ForwardVector * 700);
+				MeshComp->AddImpulse(GetActorForwardVector() * 70000);
 			}
 		}
 	}
@@ -103,16 +107,45 @@ void AMainPawn::OnHitActor(AActor* SelfActor, AActor* OtherActor, FVector Normal
 	}
 }
 
-void AMainPawn::OnCollisionSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AMainPawn::OnCollisionSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, 
+	                                          AActor* OtherActor, 
+	                                          UPrimitiveComponent* OtherComp, 
+	                                          int32 OtherBodyIndex, 
+	                                          bool bFromSweep, 
+	                                          const FHitResult& SweepResult) {
+	if (OtherActor) {
+		if (ARing* Ring = Cast<ARing>(OtherActor)) {
+			Ring->Destroy();
+		}
+	}
+
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(2, 10.f, FColor::Red, "AMainPawn::OnActorOverlapBegin");
+	}
+}
+
+void AMainPawn::OnCollisionSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, 
+											AActor* OtherActor, 
+											UPrimitiveComponent* OtherComp, 
+										    int32 OtherBodyIndex)
 {
 }
 
-void AMainPawn::OnCollisionSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AMainPawn::OnCollisionSphereHit(UPrimitiveComponent* HitComponent, 
+									 AActor* OtherActor, 
+						             UPrimitiveComponent* OtherComp, 
+									 FVector NormalImpulse, 
+							         const FHitResult& Hit)
 {
-}
+	if (OtherActor) {
+		if (ARing* Ring = Cast<ARing>(OtherActor)) {
+			Ring->Destroy();
+		}
+	}
 
-void AMainPawn::OnCollisionSphereHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-{
+	if (GEngine) {
+		GEngine->AddOnScreenDebugMessage(2, 10.f, FColor::Red, "AMainPawn::OnActorOverlapBegin");
+	}
 }
 
 // Called every frame
